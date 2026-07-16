@@ -21,8 +21,12 @@ interface ShopProps {
   onEquipSkin: (id: string) => void
   onUnequipSkin: () => void
   onEquipPet: (id: string) => void
+  onEquipPet: (id: string) => void
   onUnequipPet: () => void
   onClose: () => void
+  walletAddress: string | null
+  onMint: (id: string, cost: number) => void
+  isMinting: boolean
 }
 
 export function Shop({
@@ -39,6 +43,9 @@ export function Shop({
   onEquipPet,
   onUnequipPet,
   onClose,
+  walletAddress,
+  onMint,
+  isMinting,
 }: ShopProps) {
   const [activeTab, setActiveTab] = useState<Tab>("accessories")
 
@@ -104,25 +111,27 @@ export function Shop({
               }}
             >
               {/* NFT Badge - visually present as requested */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: 2,
-                  right: 2,
-                  background: "#7b3fbe",
-                  color: "white",
-                  fontSize: 7,
-                  fontWeight: 900,
-                  padding: "2px 4px",
-                  borderRadius: 3,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                }}
-              >
-                <Sparkles style={{ width: 8, height: 8 }} />
-                NFT
-              </div>
+              {item.isNft && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    right: 2,
+                    background: "#7b3fbe",
+                    color: "white",
+                    fontSize: 7,
+                    fontWeight: 900,
+                    padding: "2px 4px",
+                    borderRadius: 3,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                  }}
+                >
+                  <Sparkles style={{ width: 8, height: 8 }} />
+                  NFT
+                </div>
+              )}
 
               <div style={{ fontSize: 30, lineHeight: 1 }}>
                 {activeTab === "skins" ? (
@@ -150,27 +159,63 @@ export function Shop({
               <div style={{ fontWeight: 800, fontSize: 11, color: "#4e342e", textAlign: "center" }}>{item.name}</div>
 
               {!isOwned ? (
-                <button
-                  onClick={() => canAfford && onBuy(item.id)}
-                  disabled={!canAfford}
-                  style={{
-                    marginTop: 2,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                    background: canAfford ? "#ffcc02" : "#e0d6c4",
-                    color: "#4e342e",
-                    border: "2px solid #4e342e",
-                    borderRadius: 4,
-                    padding: "3px 10px",
-                    fontSize: 11,
-                    fontWeight: 800,
-                    cursor: canAfford ? "pointer" : "not-allowed",
-                    opacity: canAfford ? 1 : 0.6,
-                    boxShadow: "0 2px 0 #3e2723",
-                  }}
-                >
-                  <Coins style={{ width: 12, height: 12 }} strokeWidth={2.5} />
-                  {item.cost}
-                </button>
+                item.isNft && !walletAddress ? (
+                  <button
+                    disabled
+                    style={{
+                      marginTop: 2,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                      background: "#c62828", color: "#fff8e1",
+                      border: "2px solid #4e342e", borderRadius: 4,
+                      padding: "3px 10px", fontSize: 10, fontWeight: 800,
+                      cursor: "not-allowed", opacity: 0.8,
+                      boxShadow: "0 2px 0 #3e2723",
+                    }}
+                  >
+                    🔒 Wallet
+                  </button>
+                ) : item.isNft && walletAddress ? (
+                  <button
+                    onClick={() => canAfford && !isMinting && onMint(item.id, item.cost)}
+                    disabled={!canAfford || isMinting}
+                    style={{
+                      marginTop: 2,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                      background: (canAfford && !isMinting) ? "#7b3fbe" : "#e0d6c4",
+                      color: (canAfford && !isMinting) ? "white" : "#4e342e",
+                      border: "2px solid #4e342e", borderRadius: 4,
+                      padding: "3px 10px", fontSize: 10, fontWeight: 800,
+                      cursor: (canAfford && !isMinting) ? "pointer" : "not-allowed",
+                      opacity: (canAfford && !isMinting) ? 1 : 0.6,
+                      boxShadow: "0 2px 0 #3e2723",
+                    }}
+                  >
+                    <Sparkles style={{ width: 10, height: 10 }} />
+                    Mint
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => canAfford && onBuy(item.id)}
+                    disabled={!canAfford}
+                    style={{
+                      marginTop: 2,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                      background: canAfford ? "#ffcc02" : "#e0d6c4",
+                      color: "#4e342e",
+                      border: "2px solid #4e342e",
+                      borderRadius: 4,
+                      padding: "3px 10px",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      cursor: canAfford ? "pointer" : "not-allowed",
+                      opacity: canAfford ? 1 : 0.6,
+                      boxShadow: "0 2px 0 #3e2723",
+                    }}
+                  >
+                    <Coins style={{ width: 12, height: 12 }} strokeWidth={2.5} />
+                    {item.cost}
+                  </button>
+                )
               ) : isFurniture ? (
                 <div
                   style={{

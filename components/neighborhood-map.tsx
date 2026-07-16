@@ -35,6 +35,7 @@ import { findAccessory } from "@/lib/accessories"
 import { findSkin } from "@/lib/skins"
 import { findFurniture } from "@/lib/furniture"
 import { findPet } from "@/lib/pets"
+import { connectWallet, fetchNFTs, mintNFT } from "@/lib/web3"
 
 const GRID_COLS = 24
 const GRID_ROWS = 18
@@ -933,6 +934,10 @@ export function NeighborhoodMap() {
   const [showShop, setShowShop] = useState(false)
   const [muted, setMuted] = useState(false)
   const [won, setWon] = useState(false)
+  
+  // Web3 state
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [isMinting, setIsMinting] = useState(false)
 
   // ── Ambient: day/night cycle + weather ──
   const skyRef = useRef<HTMLDivElement>(null) // tinted via rAF (no re-render)
@@ -1053,6 +1058,53 @@ export function NeighborhoodMap() {
     audio.coin()
     GameStorage.queue(queueData)
   }, [owned])
+
+  // ── Web3 Handlers ───────────────────────────────────────────────────────────
+  const handleConnectWallet = async () => {
+    const address = await connectWallet()
+    if (address) {
+      setWalletAddress(address)
+      const nfts = await fetchNFTs(address)
+      if (nfts.length > 0) {
+        // Unir con current owned
+        const newOwned = Array.from(new Set([...owned, ...nfts]))
+        setOwned(newOwned)
+        const queueData: any = { owned: newOwned }
+        
+        // Auto-equip pet si tenemos pet_dog y no hay pet equipada
+        if (nfts.includes("pet_dog") && !equippedPet) {
+          setEquippedPet("pet_dog")
+          queueData.equippedPet = "pet_dog"
+        }
+        GameStorage.queue(queueData)
+      }
+    }
+  }
+
+  const handleMintItem = async (id: string, cost: number) => {
+    if (!walletAddress) return
+    if (walletRef.current < cost) return
+    
+    setIsMinting(true)
+    const success = await mintNFT(walletAddress, id, cost)
+    setIsMinting(false)
+
+    if (success) {
+      walletRef.current -= cost
+      setWallet(walletRef.current)
+      
+      const nextOwned = [...owned, id]
+      setOwned(nextOwned)
+      
+      let queueData: any = { wallet: walletRef.current, owned: nextOwned }
+      if (findAccessory(id)) { setEquipped(id); queueData.equipped = id }
+      if (findSkin(id)) { setEquippedSkin(id); queueData.equippedSkin = id }
+      if (findPet(id)) { setEquippedPet(id); queueData.equippedPet = id }
+      
+      audio.coin()
+      GameStorage.queue(queueData)
+    }
+  }
 
   const equipAccessory = useCallback((id: string) => {
     setEquipped(id)
@@ -1956,6 +2008,29 @@ export function NeighborhoodMap() {
           }
         </button>
 
+        {/* Connect Wallet */}
+        <button
+          onClick={() => { audio.unlock(); handleConnectWallet() }}
+          title={walletAddress ? "Wallet conectada" : "Conectar Wallet"}
+          style={{
+            background: walletAddress ? "#2d8a4e" : "#7b3fbe",
+            color: "#fffdf6",
+            border: "3px solid #4e342e",
+            borderRadius: "3px",
+            padding: "4px 8px",
+            fontSize: "9px",
+            fontWeight: 800,
+            boxShadow: "0 3px 0 #3e2723",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            cursor: "pointer",
+          }}
+        >
+          <Sparkles style={{ width: 12, height: 12 }} strokeWidth={3} />
+          {walletAddress ? "ON" : "NFT"}
+        </button>
+
         {/* Shop */}
         <button
           onClick={() => { audio.unlock(); setShowShop(true) }}
@@ -1995,6 +2070,9 @@ export function NeighborhoodMap() {
           onEquipPet={equipPet}
           onUnequipPet={unequipPet}
           onClose={() => setShowShop(false)}
+          walletAddress={walletAddress}
+          onMint={handleMintItem}
+          isMinting={isMinting}
         />
       )}
 

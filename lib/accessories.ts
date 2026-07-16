@@ -9,14 +9,15 @@ export interface Accessory {
   cost: number
   /** Vertical nudge (% of the pig box) so each item sits nicely on the head. */
   offsetY?: number
+  isNft?: boolean
 }
 
 export const ACCESSORIES: Accessory[] = [
   { id: "flower", emoji: "🌸", name: "Flor",       cost: 2 },
   { id: "bow",    emoji: "🎀", name: "Moño",       cost: 4 },
   { id: "tophat", emoji: "🎩", name: "Sombrero",   cost: 6, offsetY: -4 },
-  { id: "star",   emoji: "⭐", name: "Estrella",   cost: 8, offsetY: -6 },
-  { id: "crown",  emoji: "👑", name: "Corona",     cost: 12, offsetY: -2 },
+  { id: "star",   emoji: "⭐", name: "Estrella",   cost: 8, offsetY: -6, isNft: true },
+  { id: "crown",  emoji: "👑", name: "Corona",     cost: 12, offsetY: -2, isNft: true },
   { id: "cap",    emoji: "🧢", name: "Gorra",      cost: 5 },
 ]
 

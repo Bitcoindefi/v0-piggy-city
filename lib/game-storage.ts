@@ -17,6 +17,8 @@ export interface GameSave {
   zonesVisited: string[] // serialized Set<ZoneId> (themed zones only)
   owned: string[] // purchased accessory ids
   equipped: string | null // currently equipped accessory id
+  equippedSkin: string | null
+  equippedPet: string | null
   muted: boolean
 }
 
@@ -30,6 +32,8 @@ export const DEFAULTS: GameSave = {
   zonesVisited: [],
   owned: [],
   equipped: null,
+  equippedSkin: null,
+  equippedPet: null,
   muted: false,
 }
 
@@ -57,6 +61,13 @@ function migrate(raw: any): GameSave {
   // blob can't leave us "wearing" an accessory we don't own.
   let equipped = typeof data?.equipped === "string" ? data.equipped : null
   if (equipped !== null && !owned.includes(equipped)) equipped = null
+
+  let equippedSkin = typeof data?.equippedSkin === "string" ? data.equippedSkin : null
+  if (equippedSkin !== null && !owned.includes(equippedSkin)) equippedSkin = null
+
+  let equippedPet = typeof data?.equippedPet === "string" ? data.equippedPet : null
+  if (equippedPet !== null && !owned.includes(equippedPet)) equippedPet = null
+
   return {
     schemaVersion: SCHEMA_VERSION,
     pos,
@@ -69,6 +80,8 @@ function migrate(raw: any): GameSave {
     zonesVisited: Array.isArray(data?.zonesVisited) ? data.zonesVisited.filter((s: any) => typeof s === "string") : [],
     owned,
     equipped,
+    equippedSkin,
+    equippedPet,
     muted: typeof data?.muted === "boolean" ? data.muted : DEFAULTS.muted,
   }
 }

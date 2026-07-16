@@ -32,6 +32,9 @@ import { Weather, type WeatherType } from "./weather"
 import { GameStorage } from "@/lib/game-storage"
 import { audio } from "@/lib/audio"
 import { findAccessory } from "@/lib/accessories"
+import { findSkin } from "@/lib/skins"
+import { findFurniture } from "@/lib/furniture"
+import { findPet } from "@/lib/pets"
 
 const GRID_COLS = 24
 const GRID_ROWS = 18
@@ -925,6 +928,8 @@ export function NeighborhoodMap() {
   const [zonesVisited, setZonesVisited] = useState(0)
   const [owned, setOwned] = useState<string[]>([])
   const [equipped, setEquipped] = useState<string | null>(null)
+  const [equippedSkin, setEquippedSkin] = useState<string | null>(null)
+  const [equippedPet, setEquippedPet] = useState<string | null>(null)
   const [showShop, setShowShop] = useState(false)
   const [muted, setMuted] = useState(false)
   const [won, setWon] = useState(false)
@@ -965,6 +970,8 @@ export function NeighborhoodMap() {
     setWallet(s.wallet)
     setOwned(s.owned)
     setEquipped(s.equipped)
+    setEquippedSkin(s.equippedSkin)
+    setEquippedPet(s.equippedPet)
     zonesVisitedRef.current = new Set(s.zonesVisited)
     setZonesVisited(zonesVisitedRef.current.size)
     setMuted(s.muted)
@@ -1004,6 +1011,8 @@ export function NeighborhoodMap() {
     setZonesVisited(0)
     setOwned([])
     setEquipped(null)
+    setEquippedSkin(null)
+    setEquippedPet(null)
     setWon(false)
     posRef.current = { x: 11, y: 9 }
     setPiggyPos({ x: 11, y: 9 })
@@ -1011,33 +1020,68 @@ export function NeighborhoodMap() {
     setPiggyDirection("down")
     GameStorage.queue({
       wallet: 0, collected: [], zonesVisited: [], owned: [], equipped: null,
+      equippedSkin: null, equippedPet: null,
       pos: { x: 11, y: 9 }, dir: "down",
     })
     GameStorage.flush()
   }, [])
 
-  // ── Shop: buy / equip / unequip accessories ───────────────────────────────────
-  const buyAccessory = useCallback((id: string) => {
-    const item = findAccessory(id)
-    if (!item || owned.includes(id) || wallet < item.cost) return
-    walletRef.current = wallet - item.cost
+  // ── Shop: buy / equip / unequip items ───────────────────────────────────
+  const buyItem = useCallback((id: string) => {
+    let cost = 0
+    let isSkin = false
+    let isPet = false
+    let isAcc = false
+    if (findAccessory(id)) { cost = findAccessory(id)!.cost; isAcc = true }
+    else if (findSkin(id)) { cost = findSkin(id)!.cost; isSkin = true }
+    else if (findFurniture(id)) { cost = findFurniture(id)!.cost }
+    else if (findPet(id)) { cost = findPet(id)!.cost; isPet = true }
+    else return
+
+    if (owned.includes(id) || walletRef.current < cost) return
+
+    walletRef.current -= cost
     setWallet(walletRef.current)
     const nextOwned = [...owned, id]
     setOwned(nextOwned)
-    setEquipped(id) // auto-equip on purchase
+
+    const queueData: any = { wallet: walletRef.current, owned: nextOwned }
+    if (isAcc) { setEquipped(id); queueData.equipped = id }
+    if (isSkin) { setEquippedSkin(id); queueData.equippedSkin = id }
+    if (isPet) { setEquippedPet(id); queueData.equippedPet = id }
+
     audio.coin()
-    GameStorage.queue({ wallet: walletRef.current, owned: nextOwned, equipped: id })
-  }, [owned, wallet])
+    GameStorage.queue(queueData)
+  }, [owned])
 
   const equipAccessory = useCallback((id: string) => {
     setEquipped(id)
     audio.zoneEnter()
     GameStorage.queue({ equipped: id })
   }, [])
-
   const unequipAccessory = useCallback(() => {
     setEquipped(null)
     GameStorage.queue({ equipped: null })
+  }, [])
+
+  const equipSkin = useCallback((id: string) => {
+    setEquippedSkin(id)
+    audio.zoneEnter()
+    GameStorage.queue({ equippedSkin: id })
+  }, [])
+  const unequipSkin = useCallback(() => {
+    setEquippedSkin(null)
+    GameStorage.queue({ equippedSkin: null })
+  }, [])
+
+  const equipPet = useCallback((id: string) => {
+    setEquippedPet(id)
+    audio.zoneEnter()
+    GameStorage.queue({ equippedPet: id })
+  }, [])
+  const unequipPet = useCallback(() => {
+    setEquippedPet(null)
+    GameStorage.queue({ equippedPet: null })
   }, [])
 
   // Click the sky chip to cycle the weather manually
@@ -1314,6 +1358,8 @@ export function NeighborhoodMap() {
   const piggyScreenX = piggyPos.x * cellW + cellW / 2
   const piggyScreenY = piggyPos.y * cellH + cellH / 2
   const equippedAccessory = findAccessory(equipped)
+  const currentSkin = findSkin(equippedSkin)
+  const currentPet = findPet(equippedPet)
 
   return (
     // Outer: full screen, black bg, centers the map box
@@ -1706,6 +1752,7 @@ export function NeighborhoodMap() {
               // idle → freeze on standing frame (frame 2); moving → cycle 4 frames
               transform: isMoving ? undefined : "translateX(-50%)",
               animation: isMoving ? "piggy-walk 0.5s steps(4) infinite" : "none",
+              filter: currentSkin && currentSkin.filter !== "none" ? currentSkin.filter : "none",
             }}
           />
         </div>
@@ -1726,6 +1773,23 @@ export function NeighborhoodMap() {
             <svg viewBox="0 0 100 100" width="100%" height="100%" style={{ display: "block", overflow: "visible" }}>
               <text x="50" y="74" textAnchor="middle" fontSize="74">{equippedAccessory.emoji}</text>
             </svg>
+          </div>
+        )}
+
+        {/* Equipped pet — follows Piggy */}
+        {currentPet && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "5%",
+              right: piggyDirection === "left" ? "-40%" : piggyDirection === "right" ? "100%" : "-30%",
+              fontSize: 24,
+              animation: isMoving ? "walk-bounce 0.4s ease-in-out infinite" : "none",
+              pointerEvents: "none",
+              transition: "right 0.2s",
+            }}
+          >
+            {currentPet.emoji}
           </div>
         )}
       </div>
@@ -1920,10 +1984,16 @@ export function NeighborhoodMap() {
         <Shop
           wallet={wallet}
           owned={owned}
-          equipped={equipped}
-          onBuy={buyAccessory}
-          onEquip={equipAccessory}
-          onUnequip={unequipAccessory}
+          equippedAccessory={equipped}
+          equippedSkin={equippedSkin}
+          equippedPet={equippedPet}
+          onBuy={buyItem}
+          onEquipAccessory={equipAccessory}
+          onUnequipAccessory={unequipAccessory}
+          onEquipSkin={equipSkin}
+          onUnequipSkin={unequipSkin}
+          onEquipPet={equipPet}
+          onUnequipPet={unequipPet}
           onClose={() => setShowShop(false)}
         />
       )}

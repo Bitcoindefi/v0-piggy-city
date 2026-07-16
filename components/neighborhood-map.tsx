@@ -881,7 +881,7 @@ const GridLayer = memo(function GridLayer({
 })
 
 // ── Main component ─────────────────────────────────────────────────────────────
-export function NeighborhoodMap() {
+export function NeighborhoodMap({ onVisitFriend }: { onVisitFriend?: (address: string) => void }) {
   const [grid] = useState<CellType[][]>(initializeGrid)
   const [showPaths, setShowPaths] = useState(false)
   const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null)
@@ -1890,6 +1890,34 @@ export function NeighborhoodMap() {
             ? <VolumeX style={{ width: 12, height: 12 }} strokeWidth={3} />
             : <Volume2 style={{ width: 12, height: 12 }} strokeWidth={3} />
           }
+        </button>
+
+        {/* Visit Friend */}
+        <button
+          onClick={() => {
+            audio.unlock();
+            const addr = window.prompt("Ingresa la dirección Stellar del amigo:");
+            if (addr && addr.trim() && onVisitFriend) {
+              onVisitFriend(addr.trim());
+            }
+          }}
+          aria-label="Visitar amigo"
+          style={{
+            background: "#2d8a4e",
+            color: "#fff8e1",
+            border: "3px solid #1a5c33",
+            borderRadius: "3px",
+            padding: "4px 8px",
+            fontSize: "9px",
+            fontWeight: 800,
+            boxShadow: "0 3px 0 #1a5c33",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            cursor: "pointer",
+          }}
+        >
+          <Home style={{ width: 12, height: 12 }} strokeWidth={3} /> Visitar
         </button>
 
         {/* Shop */}

@@ -33,3 +33,21 @@ To learn more, take a look at the following resources:
 - [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
 
 <a href="https://v0.app/chat/api/kiro/clone/leocagli/v0-piggy-city" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
+
+## NFT contract (issue #20)
+
+Soroban collection contract for in-game items lives in `contracts/piggy-nft`:
+mint (admin-authorized) of `skin | furni | breed` items with per-item metadata
+(`catalog_id`, `name`, `image`), plus the full OZ NonFungibleToken surface
+(transfer/approve/owner_of/balance_of/token_uri...).
+
+```bash
+cd contracts/piggy-nft && cargo test   # 6 tests, SDK 26.1.1 + stellar-tokens 0.7.2
+bash scripts/deploy-piggy-nft.sh        # documented testnet deploy + acceptance flow
+```
+
+Testnet deployment (Third Campaign evidence):
+- CONTRACT_ID: `CBB7FH42MFOFMZFW76UP7U3RTEW5RRPEQ5FCMAJTVRVS7WQHA2FP2VHO`
+- admin: `GB3QLZ5N5WLR7OTYXHWJQJS7DSHIGMBYCIPLXPWHJQZQKOJZWSBBYCVK`
+- buyer: `GDFNTEFHHUKSSFX5YBZ27LRJUPZMPHX2WY3U6TTMUZ4MGLJCRMVEW6WM`
+- transfer tx: https://stellar.expert/explorer/testnet/tx/509328a7e97f2053a95e91945227ea56ac26675aacc202d35f95f56f8b55fba3
